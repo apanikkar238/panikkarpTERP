@@ -5,8 +5,9 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "clearCollection.js",
+  "main": "MoviesSystem.js",
   "scripts": {
+    "start": "node MoviesSystem.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
