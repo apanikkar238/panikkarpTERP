@@ -5,10 +5,11 @@ const bodyParser = require("body-parser");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
 
-require("dotenv").config({
-  path: path.resolve(__dirname, "credentialsDontPost/.env"),
-});
-
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config({
+    path: path.resolve(__dirname, "credentialsDontPost/.env"),
+  });
+}
 
 const PORT = process.env.PORT || 7003;
 
@@ -18,8 +19,19 @@ app.set("views", path.resolve(__dirname, "templates"));
 
 const databaseName = "CMSC335DB";
 const collectionName = "moviesCollection";
+
+
 const uri = process.env.MONGO_CONNECTION_STRING;
-const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+if (!uri) {
+  console.error(" MONGO_CONNECTION_STRING environment variable is not set.");
+  process.exit(1);
+}
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+  },
+});
 
 app.get("/", async (req, res) => {
   res.send(`My Deployment`);
@@ -38,7 +50,12 @@ app.get("/insertMovies", async (req, res) => {
     ];
 
     const result = await collection.insertMany(moviesArray);
-    res.send(`<h2>Inserted ${result.insertedCount} movies</h2>`);
+
+
+    const insertedCount =
+      result.insertedCount ?? Object.keys(result.insertedIds).length;
+
+    res.send(`<h2>Inserted ${insertedCount} movies</h2>`);
   } catch (e) {
     console.error(e);
     res.status(500).send("Error inserting movies");
@@ -57,8 +74,11 @@ app.get("/listMovies", async (req, res) => {
     const result = await cursor.toArray();
 
     let answer = "";
-    result.forEach((elem) => (answer += `${elem.name} (${elem.year})<br>`));
+    result.forEach((elem) => {
+      answer += `${elem.name} (${elem.year})<br>`;
+    });
     answer += `Found: ${result.length} movies`;
+
     res.send(answer);
   } catch (e) {
     console.error(e);
@@ -72,9 +92,11 @@ app.get("/clearCollection", async (req, res) => {
   try {
     await client.connect();
     const collection = client.db(databaseName).collection(collectionName);
+
     await collection.drop();
     res.send("<h2>Collection Cleared</h2>");
   } catch (e) {
+
     console.error(e);
     res.status(500).send("Error clearing collection");
   } finally {
